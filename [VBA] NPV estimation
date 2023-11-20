@@ -1,0 +1,148 @@
+
+Sub FullPlant()
+
+Range("B4:K34").Clear
+
+Dim Cons_years As Double
+Dim i As Double
+Cons_years = Range("N24").Value
+Dim CY(10) As Double
+
+If Cons_years = 1 Then
+    CY(0) = Range("N25").Value
+ElseIf Cons_years = 2 Then
+    CY(0) = Range("N25").Value
+    CY(1) = Range("N26").Value
+ElseIf Cons_years = 3 Then
+    CY(0) = Range("N25").Value
+    CY(1) = Range("N26").Value
+    CY(2) = Range("N27").Value
+ElseIf Cons_years = 4 Then
+    CY(0) = Range("N25").Value
+    CY(1) = Range("N26").Value
+    CY(2) = Range("N27").Value
+    CY(3) = Range("N28").Value
+ElseIf Cons_years = 5 Then
+    CY(0) = Range("N25").Value
+    CY(1) = Range("N26").Value
+    CY(2) = Range("N27").Value
+    CY(3) = Range("N28").Value
+    CY(4) = Range("N29").Value
+End If
+
+yr = Sheet6.Range("N21").Value
+
+Dim FCIL As Double
+FCIL = Range("Q3").Value / 1000000
+
+COMd = Range("Q4").Value / 1000000
+
+profit = Range("Q5").Value / 1000000
+
+Taxrate = Range("N4").Value
+
+CRM = Range("Q6").Value / 1000000
+
+COL = Range("Q6").Value / 1000000
+
+workex = Range("N17").Value * CRM + Range("N18").Value * FCIL + Range("N19").Value * COL
+
+Dim d(50) As Double
+p = 12
+For o = 0 To 9
+    d(o) = Sheet4.Cells(p, 5).Value
+    p = p + 1
+Next o
+
+'Year 0 or land cost addition
+j = 4
+land = (Range("N3").Value)
+C_NDCF = -1 * land / 10 ^ 6
+C_DCF = -1 * land / 10 ^ 6
+
+Sheet6.Cells(j, 2).Value = 0
+Sheet6.Cells(j, 3).Value = land / 10 ^ 6
+Sheet6.Cells(j, 7).Value = 1
+Sheet6.Cells(j, 8).Value = -1 * land / 10 ^ 6
+Sheet6.Cells(j, 9).Value = C_NDCF
+Sheet6.Cells(j, 10).Value = -1 * land / 10 ^ 6
+Sheet6.Cells(j, 11).Value = C_DCF
+j = j + 1
+
+Dim Dep As Double
+'Construction and plant operation
+years = 1
+pbpc = Cons_years + 1
+
+For i = 1 To (yr + Cons_years)
+    Disc_factor = 1 / ((1 + Range("N5").Value) ^ i)
+    If Cons_years = 1 And i = 1 Then
+        Capex = FCIL * CY(i - 1) + workex
+        Sheet6.Cells(j, 3).Value = Capex
+        Net_P = -1 * Capex
+    ElseIf Cons_year <> 1 And i < Cons_years Then
+        Capex = FCIL * CY(i - 1)
+        Sheet6.Cells(j, 3).Value = Capex
+        Net_P = -1 * Capex
+    ElseIf Cons_year <> 1 And i = Cons_years Then
+        Capex = FCIL * CY(i - 1) + workex
+        Sheet6.Cells(j, 3).Value = Capex
+        Net_P = -1 * Capex
+    End If
+    
+    If i > Cons_years Then
+        Dep = FCIL * d(i - Cons_years - 1)
+        Net_P = ((profit - COMd - Dep) * (1 - Taxrate))
+        Sheet6.Cells(j, 4).Value = Dep
+        Sheet6.Cells(j, 5).Value = profit
+        Sheet6.Cells(j, 6).Value = Net_P
+    End If
+     
+    If i = (yr + Cons_years) Then
+        Net_P = Net_P + (Sheet6.Cells(6, 14).Value / 1000000) * (1 - Taxrate)
+        Sheet6.Cells(j, 6).Value = Net_P
+    End If
+    
+    C_NDCF = C_NDCF + Net_P + Dep
+    C_DCF = C_DCF + (Net_P + Dep) * Disc_factor
+      
+    Sheet6.Cells(j, 2).Value = i
+    Sheet6.Cells(j, 7).Value = Disc_factor
+    Sheet6.Cells(j, 8).Value = Net_P
+    Sheet6.Cells(j, 9).Value = C_NDCF
+    Sheet6.Cells(j, 10).Value = Net_P * Disc_factor
+    Sheet6.Cells(j, 11).Value = C_DCF
+    
+    If i = Cons_years Then
+        ndcf_cy = C_NDCF
+    End If
+    
+    If i = (yr + Cons_years) Then
+        Sheet6.Cells(j, 8).Value = Net_P + workex + land / 1000000
+        Sheet6.Cells(j, 9).Value = C_NDCF + workex + land / 1000000
+        Sheet6.Cells(j, 10).Value = (Net_P + workex + land / 1000000) * Disc_factor
+        Sheet6.Cells(j, 11).Value = C_DCF + (workex + land / 1000000) * Disc_factor
+    End If
+    
+    If i = Cons_years Then
+        chkr = C_NDCF
+    End If
+    
+    If i > Cons_years Then
+        If C_NDCF <= chkr + FCIL And C_NDCF <> 0 Then
+            pbpc = pbpc + 1
+        End If
+    End If
+    
+    j = j + 1
+Next i
+
+j = 4
+k = 3
+
+If pbpc >= yr Then
+    Sheet6.Cells(17, 17).Value = yr + Cons_years
+Else: Sheet6.Cells(17, 17).Value = pbpc - Cons_years - 1 + ((Sheet6.Cells(k + pbpc, 9).Value - Sheet6.Cells(Cons_years + j, 9).Value - FCIL) / (Sheet6.Cells(pbpc + k, 9).Value - Sheet6.Cells(pbpc + j, 9)))
+End If
+
+End Sub
