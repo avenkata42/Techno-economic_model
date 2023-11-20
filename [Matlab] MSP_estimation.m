@@ -212,10 +212,14 @@ for bcpc=0:0.005:200
         Arr(Start, 4) = (prodincome - COMd - (FCIL / 10 ^ 6) * depp(Start - cons_yrs)) * (1 - Taxrate);
         
         if Start == totyrs 
+            % Non-discunted cash flow
             Arr(Start, 1) = (prodincome + Salval / 10 ^ 6 - COMd - (FCIL / 10 ^ 6) * depp(Start - cons_yrs)) * (1 - Taxrate) + (FCIL / 10 ^ 6) * depp(Start - cons_yrs) + workex + landcost;
-            Arr(Start, 2) = Arr(Start, 1) + Arr(Start - 1, 2);
-            Arr(Start, 3) = Arr(Start, 1) / ((WACC + 1) ^ (Start-1)) + Arr(Start - 1, 3);
-            Arr(Start, 4) = (prodincome - COMd - (FCIL / 10 ^ 6) * depp(Start - cons_yrs)) * (1 - Taxrate);
+            % Cummmulatice NDCF
+            Arr(Start, 2) = Arr(Start, 1) + Arr(Start - 1, 2);  
+            % Cummmulatice DCF
+            Arr(Start, 3) = Arr(Start, 1) / ((WACC + 1) ^ (Start-1)) + Arr(Start - 1, 3); 
+            % Net Profit
+            Arr(Start, 4) = (prodincome - COMd - (FCIL / 10 ^ 6) * depp(Start - cons_yrs)) * (1 - Taxrate); 
         end
         t = t + 1;
         Start = Start + 1;
