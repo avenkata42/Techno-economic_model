@@ -1,8 +1,9 @@
 lb=[-0.0625	-0.25	-0.25	-0.25	-0.333333333	-0.175	-0.083333333	-0.25	-0.428571429	-0.4	-0.05	-0.25	-0.32	-0.35	-0.25	-0.571428571	0	-0.333333333	-0.2	-0.083333333	-0.333333333	-0.15	-0.142857143	-0.083333333];
 ub=[0.125	0.15	0	0.25	0.055555556	0	0.166666667	0.1	0.7143	1	0.15	0.5	0.3	0.25	0.15	0.714285714	0.363636364	0	0.4	0.166666667	0	0	0.071428571	0.166666667];
 % bc =[0.9	0.75	1.5	3.5	0.95	165	7	0.75	0.65	1	1.25	0.015	0.7	0.25	0.80	7	1500	0.8	20	7	1.5	10000	60 7]; %op
-bc=[0.8	1	2	2.8	0.9	200	6	1	0.35	0.5	1	0.02	0.5	0.2	1	3.5	1100	1.2	25	6 1.5	10000	70	6];  %bc
+% bc=[0.8	1	2	2.8	0.9	200	6	1	0.35	0.5	1	0.02	0.5	0.2	1	3.5	1100	1.2	25	6 1.5	10000	70	6];  %bc
 % bc=[0.75	1.15	2	2.1	0.6	200	5.5	1.1	0.2	0.3	0.85	0.03	0.34	0.13	1.15	1.5	1100	1.2	35	5.5 1	8500	75	5.5];  %pessi
+bc=[0.9	0.75	1.5	3.5	0.95	165	7	0.75	0.65	1	1.25	0.015	0.7	0.25	0.8	7	1100	1.2	35	5.5 1	8500	75	5.5];  %pessi
 
 titles=['Capture efficiency (%)', 'Capital cost (%)', "Threshold CO3 concentration (M)", "Membrane permeance (L/m^2/h/bar)[GO]", "CO3 Rejection (%)[GO]", 'Membrane cost ($/m^2)[GO]', "Membrane Lifetime (years)[GO]", 'Stack cost (%)', 'Single pass conversion (%)', 'Current density (mA/cm^2)', 'Price of Product (%)', 'Electricity cost ($/kWh)', 'Faradaic efficiency C2H4 (%)', 'Faradaic efficiency C2H5OH (%)',  'Cell Voltage (%)', 'Electrode area per cell (m^2)', 'H2 permeance (GPU)[HF]', 'C2H4 permeance (GPU)[HF]', 'Membrane cost ($/m^2)[HF]', 'Membrane lifetime (years)[HF]', 'Water flux (LMH)[Pervap]', 'Membrane selectivity [Pervap]', 'Membrane cost ($/m^2)[Pervap]', 'Membrane lifetime (years)[Pervap]'];
    
@@ -152,6 +153,7 @@ CRRZHF = FCILZHF* 0.05 /1000000;
 flow_in = (H2Oin-H2Oreq + etha)/60;                 % L/min, density =1 
 FCILdis = 4162240*((flow_in/1000)^0.7)*1.5*1.18;    % cost calc from Jouny et al.    
 CUTdis=(9895*(flow_in/1000)^0.7 * 365*SF )/1000000;       % coolant flow+ heating requirement
+CRRdis = 0.05*FCILdis/1000000;
 
 % (2) pervaporation
 q_h2o = etha*0.05;                                             % water in feed
@@ -166,7 +168,7 @@ CRRpervap = FCILpervap* 0.05 /1000000;
 CUTI = CUTCCU + CUTGO + CUTEchemR + CUTZHF + CUTdis + CUTpervap;      % million USD
 FCILbop = 0.35*(FCILEchemR/0.65);                                     % USD 
 FCIL = FCILCCU + FCILGO + FCILEchemR + FCILZHF + FCILdis + FCILbop + FCILpervap;   % USD     
-CRR = CRRCCU + CRRGO + CRREchemR + CRRZHF + CRRpervap;                % million USD: Running and replacement
+CRR = CRRCCU + CRRGO + CRREchemR + CRRZHF + CRRpervap + CRRdis;                % million USD: Running and replacement
 CRM = CRMCCU + CRMEchemR;                                             % million USD: Raw materials
 NOL = (6.29 + 31.7* (0)^2 + 0.23*(8+stacktot))^0.5;                   % Eqn 8.3 richard turton, 8 unit ops
 COL = 4.5* NOL* (32.77*2000)/1000000;                                 % million USD: 245 shifts per operator, 1095 operating shifts per plant: 4.5 operators per required operator for the plant; per operator cost is 32.77 usd/hr, 2000 hrs per yr: https://www.bls.gov/regions/southwest/news-release/employercostsforemployeecompensation_regions.htm 
@@ -229,7 +231,7 @@ for bcpc=0:0.005:200
     Start = totyrs;
     NPV = Arr(Start, 3);
 
-    if j~=1 && NPV>0  
+    if j~=1 && NPV>0
         break
     end
     j=j+1;
