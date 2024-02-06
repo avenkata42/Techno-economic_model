@@ -1,9 +1,9 @@
 lb=[-0.0625	-0.25	-0.25	-0.25	-0.333333333	-0.175	-0.083333333	-0.25	-0.428571429	-0.4	-0.05	-0.25	-0.32	-0.35	-0.25	-0.571428571	0	-0.333333333	-0.2	-0.083333333	-0.333333333	-0.15	-0.142857143	-0.083333333];
 ub=[0.125	0.15	0	0.25	0.055555556	0	0.166666667	0.1	0.7143	1	0.15	0.5	0.3	0.25	0.15	0.714285714	0.363636364	0	0.4	0.166666667	0	0	0.071428571	0.166666667];
-% bc =[0.9	0.75	1.5	3.5	0.95	165	7	0.75	0.65	1	1.25	0.015	0.7	0.25	0.80	7	1500	0.8	20	7	1.5	10000	60 7]; %op
+%bc =[0.9	0.75	1.5	3.5	0.95	165	7	0.75	0.65	1	1.25	0.015	0.7	0.25	0.75	7 1500	0.8	20	7	1.5	10000	60 7]; %variable
 % bc=[0.8	1	2	2.8	0.9	200	6	1	0.35	0.5	1	0.02	0.5	0.2	1	3.5	1100	1.2	25	6 1.5	10000	70	6];  %bc
 % bc=[0.75	1.15	2	2.1	0.6	200	5.5	1.1	0.2	0.3	0.85	0.03	0.34	0.13	1.15	1.5	1100	1.2	35	5.5 1	8500	75	5.5];  %pessi
-bc=[0.9	0.75	1.5	3.5	0.95	165	7	0.75	0.65	1	1.25	0.015	0.7	0.25	0.8	7	1100	1.2	35	5.5 1	8500	75	5.5];  %pessi
+bc=[0.9	0.75	1.5	3.5	0.95	165	7	0.75	0.65	1	1.15	0.015	0.7	0.25	0.85 7	1500	0.8	20	7 1.5	10000	60	7];  %optimis
 
 titles=['Capture efficiency (%)', 'Capital cost (%)', "Threshold CO3 concentration (M)", "Membrane permeance (L/m^2/h/bar)[GO]", "CO3 Rejection (%)[GO]", 'Membrane cost ($/m^2)[GO]', "Membrane Lifetime (years)[GO]", 'Stack cost (%)', 'Single pass conversion (%)', 'Current density (mA/cm^2)', 'Price of Product (%)', 'Electricity cost ($/kWh)', 'Faradaic efficiency C2H4 (%)', 'Faradaic efficiency C2H5OH (%)',  'Cell Voltage (%)', 'Electrode area per cell (m^2)', 'H2 permeance (GPU)[HF]', 'C2H4 permeance (GPU)[HF]', 'Membrane cost ($/m^2)[HF]', 'Membrane lifetime (years)[HF]', 'Water flux (LMH)[Pervap]', 'Membrane selectivity [Pervap]', 'Membrane cost ($/m^2)[Pervap]', 'Membrane lifetime (years)[Pervap]'];
    
@@ -47,23 +47,28 @@ totyrs = cons_yrs + projLife + 1;
 num=bc; %% num is the basecase
 
 %% CCU calculations
-capturerate = 31.501*num(1) -0.1837;                    % t-CO2/m2/yr : correlation from CCU_calc sheet in data folder
+capturerate = 31.501*num(1) - 0.1837;                   % t-CO2/m2/yr : correlation from CCU_calc sheet in data folder
 kohconc = 2.5;                                          % mol/L
 RR = 1/num(9);                                               % recycle ratio
 co22bcap= (desired_C2H4* 1000/ 28/ 365/ 86400) /num(1) /num(5) /num(9) /(num(13)/(num(14)+num(13))) *2 /RR; % kmol/s : desired_C2H4 / capt_eff / rejection / SP_conv / Selecitivity_C2H4 (!= FE_C2H4) *2 carbonates per mol of C2+ prod
 
 if num(5)<0.75
-    co22bcap = co22bcap /0.45*RR;                          % 45% rej for stage 2
+    co22bcap = co22bcap /0.45*RR;                       % 45% rej for stage 2
 end
 
 kohCCU= co22bcap/0.13*56*RR;                            % kg/s, assuming 0.13 mol CO2/mol KOH uptake
 waterCCU= kohCCU/56*1000/kohconc;                       % kg/s
 CCUarea= co22bcap*44/capturerate/1000*3600*24*365*SF;   % m^2
 
-FCILCCU= 5386.5*(CCUarea)*1.18*num(2)*1.5;
+FCILCCU= 4668*(CCUarea^0.85)*num(2)*1.18*1.5;
 CRMCCU = (((waterCCU)*h2ocost*0.001)+(kohCCU*kohcost))*365*24*3600*SF/1000000;
 CRRCCU = FCILCCU*0.05/1000000;
 CUTCCU = (SF*365*24)*125.44*1.6/(60/100)/1000*CCUarea*num(12)/1000000; % packing pr drop = 125.44 Pa/m, air velocity =1.6 m/s, fan efficiency = 60%
+
+COMdCCU = 0.18 * (FCILCCU/1000000) + 1.23* (CUTCCU + CRMCCU + CRRCCU);
+
+CRF = 12.5/100;
+lvd_cost = (FCILCCU*CRF+COMdCCU*1000000)/(capturerate*CCUarea)/SF;
 
 %% GO Membrane concentrator calculations
 % CO3 concentrating stages
@@ -179,7 +184,7 @@ COMd = 0.18 * (FCIL/1000000) + 2.76 * COL + 1.23* (CUTI + CWT + CRM + CRR); % mi
 p2=zeros(20000,1);  
 j=1;
 for bcpc=0:0.005:200                                     
-    prodincome=(0.6*CO + bcpc*ethy + 3.9*h2 + 0.12*O2 + 0.8*etha)*24*365*num(11) /1000000;
+    prodincome=((0.6*CO + 3.9*h2 + 0.1345*O2 + 1*etha)*num(11) + bcpc*ethy )*24*365 /1000000;
 
     %% Profitability analysis
     % defining arrays
@@ -230,6 +235,9 @@ for bcpc=0:0.005:200
 %% (1) NPV value calculation
     Start = totyrs;
     NPV = Arr(Start, 3);
+
+   %% (3) ROROI value calculation
+    ROROI = sum(Arr(4:totyrs,1))/(totyrs-cy-1) / (FCIL / 10 ^ 6) *100;
 
     if j~=1 && NPV>0
         break
